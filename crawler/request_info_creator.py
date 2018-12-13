@@ -14,7 +14,11 @@ class BaseCreator:
         if extra_headers is not None:
             headers.update(extra_headers)
 
-        self.headers = headers
+        self.__headers = headers
+
+    @property
+    def headers(self):
+        return self.__headers
 
 
 # 公務統計
@@ -479,3 +483,39 @@ class AgrCostCreator(BaseCreator):
     @classmethod
     def tag(cls, key) -> str:
         return cls.__SELECT_DICT[key]
+
+
+class FishYearCreator(BaseCreator):
+    __SPEC_DAY = '08301700'
+    __KEYWORDS_LENTH = 7
+    __KEYWORD = '民國{}年'
+    __SELECT_DICT = {
+        'a': 'table.list > tr:nth-of-type(2) > td:nth-of-type(2) > a'
+    }
+
+    def __init__(self):
+        headers = {
+            'Cookie': '_ga=GA1.3.1706750957.1534403345; __utmz=42899762.1534403345.1.1.utmcsr=(direct)|utmccn=(direct)|'
+                      'utmcmd=(none); ASP.NET_SessionId=frxnma55dswkkpaoukxmxq55; _gid=GA1.3.1822684352.1544522012; '
+                      '__utmc=42899762; citrix_ns_id=Xk1Z85fdC/0dbElJvGKrtuyZLaM0001; '
+                      '__utma=42899762.1706750957.1534403345.1544580541.1544667115.9; '
+                      '__atuvc=3%7C50; __atuvs=5c11bfebadae1349000; __utmb=42899762.2.10.1544667115',
+            'Host': 'www.fa.gov.tw',
+        }
+        super().__init__(headers)
+
+    @property
+    def kw(self):
+        return self.__KEYWORD
+
+    @property
+    def day(self):
+        return self.__SPEC_DAY
+
+    @classmethod
+    def tag(cls, key) -> str:
+        return cls.__SELECT_DICT[key]
+
+    @staticmethod
+    def len():
+        return FishYearCreator.__KEYWORDS_LENTH

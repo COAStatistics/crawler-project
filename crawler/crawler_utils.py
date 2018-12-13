@@ -5,6 +5,7 @@ from log import log, err_log
 from pdfminer.converter import PDFPageAggregator
 from pdfminer.layout import LTTextBoxHorizontal, LAParams
 from selenium import webdriver
+import codecs
 import csv
 import io
 import os
@@ -147,6 +148,14 @@ def find_kw(link, keyword, file_type='excel', parse=False) -> tuple:
                     if text.find(keyword) != -1:
                         return True, text
         return False, text
+
+    elif file_type == 'stream':
+        reader = codecs.getdecoder('utf8')(bytes(req.get(link).content))[0]
+        text = reader[reader.index('('):reader.index(')')].strip('()')
+        if text.find(keyword) != -1:
+            return True, text
+        else:
+            return False, text
 
     wb = xlrd.open_workbook(file_contents=requests.get(link).content)
     sheet = wb.sheet_by_index(0)

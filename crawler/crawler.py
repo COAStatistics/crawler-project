@@ -32,11 +32,13 @@ from request_info_creator import (
     BliCreator as bc,
     PxwebCreator as pc,
     AgrCostCreator as acc,
+    FishYearCreator as fyc,
 )
 
 kws_d = {}
 kws_l = []
 forest_kws_l = []
+fish_year_l = []
 
 
 def start_crawler(key, url) -> None:
@@ -78,7 +80,10 @@ def start_crawler(key, url) -> None:
     #     extract_pxweb(key, url)
 
     # if url.find('itemNo=COI121') != -1:
-    #     extract_agrcost(url, key)
+    #     extract_agrcost(key, url)
+
+    if url.find('FishYear') != -1:
+        extract_fish_year(key, url)
 
 
 def extract_agrstat_official_info(key, url) -> None:
@@ -187,6 +192,7 @@ def extract_forest(key, url) -> None:
                 k_f_l_d[w] = f
 
         for k, v in k_f_l_d.items():
+            print(v)
             if k == '造林面積':
                 now = time.strftime('%m%d%H%M')
                 keyword = '{}年第{}季'
@@ -208,6 +214,7 @@ def extract_forest(key, url) -> None:
                     datetime_start = month[10]
                     datetime_end = month[1]
                 sl.set_msg(datetime_start, datetime_end)
+
                 find, text = find_kw(v, format_keyword, 'ods')
                 if find:
                     log.info(format_keyword, k, text)
@@ -215,13 +222,15 @@ def extract_forest(key, url) -> None:
                     mailhandler.set_msg(False, k, url, format_keyword)
                     err_log.warning(format_keyword, k, text)
 
-            if k == '林務局森林遊樂區收入' or k == '木材市價':
+            elif k == '林務局森林遊樂區收入' or k == '木材市價':
                 flag_month, datetime_start, datetime_end = datetime_maker(day=creator.days)
                 if k == '林務局森林遊樂區收入':
                     format_keyword = creator.income_date.format(YEAR, int(flag_month)-1)
+                    find, text = find_kw(v, format_keyword, 'ods')
                 else:
                     format_keyword = creator.wood_date.format(YEAR, int(flag_month)-1)
-                find, text = find_kw(v, format_keyword, 'ods')
+                    find, text = find_kw(v, format_keyword, 'stream')
+
                 if find:
                     log.info(format_keyword, k, text)
                 else:
@@ -443,7 +452,7 @@ def extract_pxweb(key, url):
         driver.quit()
 
 
-def extract_agrcost(url, key):
+def extract_agrcost(key, url):
     if not os.path.isdir(Base.TEMP_PATH):
         os.mkdir(Base.TEMP_PATH)
 
@@ -489,3 +498,22 @@ def extract_agrcost(url, key):
     finally:
         time.sleep(2)
         browser.quit()
+
+
+def extract_fish_year(key, url):
+    fish_year_l.append(key)
+    if len(fish_year_l) == fyc.len():
+        creator = fyc()
+        flag_year, datetime_start, datetime_end = datetime_maker(spec=creator.day)
+        element = get_html_element(creator.tag('a'), method='get', creator=creator, url=url)
+        text = LAMBDA_DICT['kw_list'](element)[0]
+        keyword = creator.kw.format(flag_year - 1)
+
+        if text.find(keyword) != -1:
+            log.info(keyword, '漁業統計年報', text)
+        else:
+            if keyword < text[:7]:
+                mailhandler.set_msg(True, url, key, str(flag_year) + '年')
+            else:
+                mailhandler.set_msg(False, url, key, str(flag_year - 1) + '年')
+            err_log.warning(keyword, '漁業統計年報', text)
